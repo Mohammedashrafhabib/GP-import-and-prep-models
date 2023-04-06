@@ -14,7 +14,7 @@ namespace GP_import_and_prep_models
 {
     internal class Program
     {
-        static string model_path = "D:/ComputerScience/4th_Year/GradutionProject/model-3-epochs/checkpoints-base.pth";
+        static string model_path = "C:\\Users\\mando\\Downloads\\onnx(answerExtraction)-20230330T174005Z-001\\checkpoints-base.pth";
 
         static async Task Main(string[] args)
         {
@@ -28,9 +28,10 @@ namespace GP_import_and_prep_models
             //await  Installer.PipInstallModule("tensorflow",force:true);
             Console.WriteLine("SAd");
             //await Installer.PipInstallModule("--upgrade pip");
-            await Installer.PipInstallModule("transformers");
+            //await Installer.PipInstallModule(@"https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.0/en_core_web_sm-2.2.0.tar.gz");
+           // Installer.RunCommand("python -m spacy download en_core_web_sm");
             PythonEngine.Initialize();
-            Console.ReadLine();
+            //Console.ReadLine();
             using (Py.GIL())
             {
                 // create a Python scope
@@ -38,7 +39,7 @@ namespace GP_import_and_prep_models
                 {
                     scope.Set("model_path", model_path);
                     var passage = "As at most other universities, Notre Dame's students run a number of news media outlets. The nine student-run outlets include three newspapers, both a radio and television station, and several magazines and journals. Begun as a one-page journal in September 1876, the Scholastic magazine is issued twice monthly and claims to be the oldest continuous collegiate publication in the United States. The other magazine, The Juggler, is released twice a year and focuses on student literature and artwork. The Dome yearbook is published annually. The newspapers have varying publication interests, with The Observer published daily and mainly reporting university and other news, and staffed by students from both Notre Dame and Saint Mary's College. Unlike Scholastic and The Dome, The Observer is an independent publication and does not have a faculty advisor or any editorial oversight from the University. In 1987, when some students believed that The Observer began to show a conservative bias, a liberal newspaper, Common Sense was published. Likewise, in 2003, when other students believed that the paper showed a liberal bias, the conservative paper Irish Rover went into production. Neither paper is published as often as The Observer; however, all three are distributed to all students. Finally, in Spring 2008 an undergraduate journal for political science research, Beyond Politics, made its debut.";
-                    var answer = "September 1876";
+                    var answer = @"September 1876";
                     scope.Set("passage", passage);
                     scope.Set("answer", answer);
 
@@ -48,7 +49,8 @@ import transformers
 import spacy
 from pathlib import Path
 import numpy as np
-
+import en_core_web_sm
+nlp = en_core_web_sm.load()
 nlp = spacy.load('en_core_web_sm')
 
 device = torch.device('cuda:0' if torch.cuda.is_available()
@@ -72,7 +74,6 @@ mapping_vector = { 0 : 'who', 1 : 'what', 2 : 'when', 3 : 'where', 4 : 'why', 5 
 
 ffn = FFN(hidden_size=773, num_classes=8)
 softmax=torch.nn.Softmax(dim=-1)
-model_path = Path(r'/content/drive/MyDrive/Datasets/model-3-epochs/checkpoints-base.pth')
 
 
 def encode_passage_answer(passage,answer):
@@ -88,7 +89,7 @@ def encode_passage_answer(passage,answer):
   return encoded_dict['input_ids'] , encoded_dict['attention_mask']
   
 def extract_ner_answer(answer):
-  entity_type = ""
+  entity_type = ''
   doc = nlp(answer)
   if doc.ents:
       entity_types = doc.ents[0].label_
@@ -139,6 +140,7 @@ prediction = evaluation(model , ffn ,input_ids , attention_masks , entity_type_e
                     Console.WriteLine($"{zzz}");
                 }
             }
+            Console.ReadLine();
 
         }
 
