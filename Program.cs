@@ -25,7 +25,7 @@ namespace GP_import_and_prep_models
             Python.Runtime.Runtime.PythonDLL = "python37.dll";
             var z = Installer.EmbeddedPythonHome;
             var x = await Installer.TryInstallPip();
-            //await  Installer.PipInstallModule("tensorflow",force:true);
+            await  Installer.PipInstallModule("sense2vec",force:true);
             Console.WriteLine("SAd");
             //await Installer.PipInstallModule("--upgrade pip");
             //await Installer.PipInstallModule(@"https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.0/en_core_web_sm-2.2.0.tar.gz");
@@ -42,102 +42,43 @@ namespace GP_import_and_prep_models
                     var answer = @"September 1876";
                     scope.Set("passage", passage);
                     scope.Set("answer", answer);
+                    string S2V = "C:\\Users\\mando\\Downloads\\distractors\\s2v_old";
+                    scope.Set("S2VPath", S2V);
 
-                    scope.Exec(@"
-import torch
-import transformers
-import spacy
-from pathlib import Path
-import numpy as np
-import en_core_web_sm
-nlp = en_core_web_sm.load()
-nlp = spacy.load('en_core_web_sm')
+//                    scope.Exec(@"
 
-device = torch.device('cuda:0' if torch.cuda.is_available()
-                      else 'cpu')
+//#####Distractors
 
+//from sense2vec import Sense2Vec
+//print('sad')
 
-model = transformers.BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=8).to(device)
-tokenizer = transformers.BertTokenizer.from_pretrained('bert-base-uncased')
-
-class FFN(torch.nn.Module):
-    def __init__(self, hidden_size, num_classes):
-        super().__init__()
-        self.fc1 = torch.nn.Linear(hidden_size, num_classes).to(device)
-
-    def forward(self, x):
-        out = self.fc1(x)
-        return out
-
-entity_type_dict = {'PERSON': [1, 0, 0, 0, 0], 'CARDINAL': [0, 1, 0, 0, 0], 'DATE': [0, 0, 1, 0, 0], 'ORG': [0, 0, 0, 1, 0], 'GPE': [0, 0, 0, 0, 1], 'None': [0, 0, 0, 0, 0]}
-mapping_vector = { 0 : 'who', 1 : 'what', 2 : 'when', 3 : 'where', 4 : 'why', 5 : 'how',6 : 'which',7 : 'other'}
-
-ffn = FFN(hidden_size=773, num_classes=8)
-softmax=torch.nn.Softmax(dim=-1)
+//s2v = Sense2Vec().from_disk(S2VPath)
+//print('sad')
+//def sense2vec_get_words(word,s2v):
+//    output = []
+//    word = word.lower()
+//    word = word.replace('' '', '_')
+//    sense = s2v.get_best_sense(word)
+//    if sense is None:
+//      return list()
+//    most_similar = s2v.most_similar(sense, n=4)
 
 
-def encode_passage_answer(passage,answer):
-  encoded_dict = tokenizer.encode_plus(
-                          passage,
-                          answer,
-                          add_special_tokens = True,
-                          max_length = 512,
-                          pad_to_max_length = True,
-                          return_attention_mask = True,
-                          return_tensors = 'pt'
-                    )
-  return encoded_dict['input_ids'] , encoded_dict['attention_mask']
-  
-def extract_ner_answer(answer):
-  entity_type = ''
-  doc = nlp(answer)
-  if doc.ents:
-      entity_types = doc.ents[0].label_
-  else:
-      entity_types = 'None'
-  entity_type_embeddings_train = np.zeros((1, 5))
-  try:
-      entity_type_embeddings_train = np.array(entity_type_dict[entity_type])
-  except:  
-      entity_type_embeddings_train = np.array(entity_type_dict['None'])
+//    for each_word in most_similar:
+//      # if each_word[1]<=0.6:
+//        append_word = each_word[0].split(''|'')[0].replace('_', ' ').lower()
+//        if append_word.lower() != word:
+//            output.append(append_word.title())
 
-  return entity_type_embeddings_train
-
-def load_model(model_path,model,ffn):
-  checkpoint = torch.load(model_path,map_location=torch.device('cpu'))
-  model.load_state_dict(checkpoint['model_state_dict'])
-  ffn.load_state_dict(checkpoint['ffn_state_dict'])
-  return model , ffn
-
-model , ffn = load_model(model_path , model , ffn)
-input_ids , attention_masks = encode_passage_answer(passage , answer)
-entity_type_embeddings = extract_ner_answer(answer)
-entity_type_embeddings = entity_type_embeddings.reshape(1,-1)
-
-# input_ids = torch.cat(input_ids, dim=0)
-# attention_masks = torch.cat(attention_masks, dim=0)
-entity_type_embeddings = torch.from_numpy(entity_type_embeddings)
-
-def evaluation(model , ffn , input_ids , attention_masks , entity_type_embeddings):
-  model.eval()
-  outputs = model(input_ids, attention_mask = attention_masks,output_hidden_states=True)
-  cls_tensor = outputs.hidden_states[-1]
-  cls_tensor = cls_tensor[:,0,:]
-  ner_tensor = entity_type_embeddings.to(torch.float32)
-  concat_tensor = torch.cat((cls_tensor, ner_tensor),dim=1).to(device)
-  logits = ffn(concat_tensor)  
-  prediction = softmax(logits)
-  prediction = int(torch.argmax(prediction, dim=1))
-
-  return mapping_vector[prediction]
-
-prediction = evaluation(model , ffn ,input_ids , attention_masks , entity_type_embeddings)
+//    out = list(output)
+//    return out
+//print('sad')
 
 
-");
+//");
 
-                    dynamic zzz = scope.Get("prediction");
-                    Console.WriteLine($"{zzz}");
+//                    dynamic zzz = scope.Get("prediction");
+//                    Console.WriteLine($"{zzz}");
                 }
             }
             Console.ReadLine();
