@@ -25,13 +25,19 @@ namespace GP_import_and_prep_models
             Python.Runtime.Runtime.PythonDLL = "python37.dll";
             var z = Installer.EmbeddedPythonHome;
             var x = await Installer.TryInstallPip();
-            //await  Installer.PipInstallModule("tensorflow",force:true);
+            //await Installer.PipInstallModule("tensorflow",force:true);
+            //await Installer.PipInstallModule("transformers", force: true);
+            //await Installer.PipInstallModule("torch", force: true);
+            //await Installer.PipInstallModule("spacy", force: true);
+           // await Installer.PipInstallModule("urllib3", force: true,version: "1.26.16");
+
+
             Console.WriteLine("SAd");
             //await Installer.PipInstallModule("--upgrade pip");
             //await Installer.PipInstallModule(@"https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.0/en_core_web_sm-2.2.0.tar.gz");
-           // Installer.RunCommand("python -m spacy download en_core_web_sm");
+            Installer.RunCommand("python -m spacy download en_core_web_sm");
             PythonEngine.Initialize();
-            //Console.ReadLine();
+            Console.ReadLine();
             using (Py.GIL())
             {
                 // create a Python scope
@@ -44,21 +50,17 @@ namespace GP_import_and_prep_models
                     scope.Set("answer", answer);
 
                     scope.Exec(@"
-import torch
 import transformers
+import torch
 import spacy
-from pathlib import Path
-import numpy as np
-import en_core_web_sm
-nlp = en_core_web_sm.load()
 nlp = spacy.load('en_core_web_sm')
+
+'''# Enable Cuda Device'''
 
 device = torch.device('cuda:0' if torch.cuda.is_available()
                       else 'cpu')
 
-
-model = transformers.BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=8).to(device)
-tokenizer = transformers.BertTokenizer.from_pretrained('bert-base-uncased')
+'''# FFN'''
 
 class FFN(torch.nn.Module):
     def __init__(self, hidden_size, num_classes):
@@ -69,70 +71,88 @@ class FFN(torch.nn.Module):
         out = self.fc1(x)
         return out
 
-entity_type_dict = {'PERSON': [1, 0, 0, 0, 0], 'CARDINAL': [0, 1, 0, 0, 0], 'DATE': [0, 0, 1, 0, 0], 'ORG': [0, 0, 0, 1, 0], 'GPE': [0, 0, 0, 0, 1], 'None': [0, 0, 0, 0, 0]}
-mapping_vector = { 0 : 'who', 1 : 'what', 2 : 'when', 3 : 'where', 4 : 'why', 5 : 'how',6 : 'which',7 : 'other'}
+'''#Loading Saved Model'''
+
+model = transformers.BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=8).to(device)
+
+
+checkpoint = torch.load(model_path,map_location=torch.device('cpu'))
+
+model.load_state_dict(checkpoint['model_state_dict'])
 
 ffn = FFN(hidden_size=773, num_classes=8)
-softmax=torch.nn.Softmax(dim=-1)
+ffn.load_state_dict(checkpoint['ffn_state_dict'])
 
+'''# Passage Answer Encoding'''
 
-def encode_passage_answer(passage,answer):
-  encoded_dict = tokenizer.encode_plus(
-                          passage,
-                          answer,
-                          add_special_tokens = True,
-                          max_length = 512,
-                          pad_to_max_length = True,
-                          return_attention_mask = True,
-                          return_tensors = 'pt'
+tokenizer = transformers.BertTokenizer.from_pretrained('bert-base-uncased')
+
+encoded_input  = tokenizer.encode_plus(
+                      passage,
+                      answer,
+                      max_length = 512,
+                      truncation=True,
+                      truncation_strategy='only_first',
+                      padding='max_length',
+                      return_attention_mask = True,
+                      return_tensors = 'pt'
                     )
-  return encoded_dict['input_ids'] , encoded_dict['attention_mask']
-  
-def extract_ner_answer(answer):
-  entity_type = ''
-  doc = nlp(answer)
-  if doc.ents:
-      entity_types = doc.ents[0].label_
-  else:
-      entity_types = 'None'
-  entity_type_embeddings_train = np.zeros((1, 5))
+input_ids ,attention_mask = encoded_input['input_ids'] , encoded_input['attention_mask']
+
+'''# Named Entity For Answer'''
+
+entity_type_dict = {'PERSON': [1, 0, 0, 0, 0], 'CARDINAL': [0, 1, 0, 0, 0], 'DATE': [0, 0, 1, 0, 0], 'ORG': [0, 0, 0, 1, 0], 'GPE': [0, 0, 0, 0, 1], 'None': [0, 0, 0, 0, 0]}
+entity_type_embeddings = list()
+doc = nlp(answer)
+if doc.ents:
+  entity_types = set([token.ent_type_ if token.ent_type_ != '' else 'None' for token in doc])
+else:
+  entity_types = set(['None'])
+entities = set()
+entity_list = list()
+for ent in entity_types:
+  if ent in entity_type_dict:
+    entities.add(ent)
+  else :
+    entities.add('None')
+
+for ent in entities:
   try:
-      entity_type_embeddings_train = np.array(entity_type_dict[entity_type])
-  except:  
-      entity_type_embeddings_train = np.array(entity_type_dict['None'])
+    entity = (entity_type_dict[ent])
+  except:
+    entity = (entity_type_dict['None'])
+  entity_list.append(entity)
 
-  return entity_type_embeddings_train
+for i in range(6- len(entity_list)):
+  entity_list.append(entity_type_dict['None'])
 
-def load_model(model_path,model,ffn):
-  checkpoint = torch.load(model_path,map_location=torch.device('cpu'))
-  model.load_state_dict(checkpoint['model_state_dict'])
-  ffn.load_state_dict(checkpoint['ffn_state_dict'])
-  return model , ffn
+entity_type_embeddings.append(entity_list)
 
-model , ffn = load_model(model_path , model , ffn)
-input_ids , attention_masks = encode_passage_answer(passage , answer)
-entity_type_embeddings = extract_ner_answer(answer)
-entity_type_embeddings = entity_type_embeddings.reshape(1,-1)
+'''# Evaluation'''
 
 # input_ids = torch.cat(input_ids, dim=0)
 # attention_masks = torch.cat(attention_masks, dim=0)
-entity_type_embeddings = torch.from_numpy(entity_type_embeddings)
+entity_type_embeddings = torch.tensor(entity_type_embeddings)
 
-def evaluation(model , ffn , input_ids , attention_masks , entity_type_embeddings):
-  model.eval()
-  outputs = model(input_ids, attention_mask = attention_masks,output_hidden_states=True)
-  cls_tensor = outputs.hidden_states[-1]
-  cls_tensor = cls_tensor[:,0,:]
-  ner_tensor = entity_type_embeddings.to(torch.float32)
-  concat_tensor = torch.cat((cls_tensor, ner_tensor),dim=1).to(device)
-  logits = ffn(concat_tensor)  
-  prediction = softmax(logits)
-  prediction = int(torch.argmax(prediction, dim=1))
+mapping_vector = { 0 : 'who', 1 : 'what', 2 : 'when', 3 : 'where', 4 : 'why', 5 : 'how',6 : 'which',7 : 'other'}
 
-  return mapping_vector[prediction]
+model.eval()
 
-prediction = evaluation(model , ffn ,input_ids , attention_masks , entity_type_embeddings)
+with torch.no_grad():
+  outputs = model(input_ids = input_ids, attention_mask = attention_mask, output_hidden_states = True)
 
+cls_tensor = outputs.hidden_states[-1]
+cls_tensor = cls_tensor[:,:6,:]
+ner_tensor = entity_type_embeddings
+
+# Concatenate the tensors along the first dimension
+concat_tensor = torch.cat((cls_tensor, ner_tensor),dim=2).to(device)
+
+logits = ffn(concat_tensor)
+logits=(torch.max(logits,dim=1).values)
+
+prediction = torch.argmax(logits, dim=1)
+prediction = mapping_vector[int(prediction)]
 
 ");
 
