@@ -35,9 +35,9 @@ namespace GP_import_and_prep_models
             Console.WriteLine("SAd");
             //await Installer.PipInstallModule("--upgrade pip");
             //await Installer.PipInstallModule(@"https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.0/en_core_web_sm-2.2.0.tar.gz");
-            Installer.RunCommand("python -m spacy download en_core_web_sm");
+            //Installer.RunCommand("python -m spacy download en_core_web_sm");
             PythonEngine.Initialize();
-            Console.ReadLine();
+           // Console.ReadLine();
             using (Py.GIL())
             {
                 // create a Python scope
