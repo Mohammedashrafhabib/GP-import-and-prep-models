@@ -10,15 +10,15 @@ namespace GP_import_and_prep_models
 
     internal class AnswerExtractionModelRunner
     {
-        static string MODEL_PATH = @"C:\Users\Mostafa\Downloads\t5-small-epochs=4";
-        static string Token_Path = @"C:\Users\Mostafa\Downloads\t5-small-tokenizer";
+        static string MODEL_PATH = "C:\\Users\\mando\\Downloads\\drive-download-20230403T210633Z-001\\t5-small-epochs=4";
+        static string Token_Path = "C:\\Users\\mando\\Downloads\\drive-download-20230403T210633Z-001\\t5-small-tokenizer";
         public static async Task<String> Run(String context)
         {
             var watch = new System.Diagnostics.Stopwatch();
             watch.Start();
             //Installer.LogMessage += Console.WriteLine;
             //await Installer.SetupPython();
-            Python.Runtime.Runtime.PythonDLL = @"python37.dll";
+            Python.Runtime.Runtime.PythonDLL = "C:\\Users\\mando\\AppData\\Local\\python-3.7.3-embed-amd64\\python37.dll";
             //var z = Installer.EmbeddedPythonHome;
             //var x = await Installer.TryInstallPip();
             // await  Installer.PipInstallModule("tensorflow",force:true);

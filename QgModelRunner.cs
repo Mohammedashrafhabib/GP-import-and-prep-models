@@ -7,8 +7,8 @@ namespace GP_import_and_prep_models
 {
     internal class QgModelRunner
     {
-        static string MODEL_PATH = @"C:\Users\Mostafa\Downloads\QG-With-t5-small-epochs=3";
-        static string Token_Path = @"C:\Users\Mostafa\Downloads\t5-small-tokenizer";
+        static string MODEL_PATH = "C:\\Users\\mando\\Downloads\\T5-base-0002-0.2930.ckpt-20230628T210425Z-001\\T5-base-0002-0.2930.ckpt";
+        static string Token_Path = "C:\\Users\\mando\\Downloads\\drive-download-20230403T210633Z-001\\t5-small-tokenizer";
         public static async Task<string[]> Run(String passage, String[] answers, String[] question_words)
         {
             var watch = new System.Diagnostics.Stopwatch();
