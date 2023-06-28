@@ -18,7 +18,7 @@ namespace GP_import_and_prep_models
             watch.Start();
             //Installer.LogMessage += Console.WriteLine;
             //await Installer.SetupPython();
-            Python.Runtime.Runtime.PythonDLL = @"C:\Users\Mostafa\AppData\Local\python-3.7.3-embed-amd64\python37.dll";
+            Python.Runtime.Runtime.PythonDLL = @"python37.dll";
             //var z = Installer.EmbeddedPythonHome;
             //var x = await Installer.TryInstallPip();
             // await  Installer.PipInstallModule("tensorflow",force:true);

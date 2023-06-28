@@ -15,7 +15,7 @@ namespace GP_import_and_prep_models
             watch.Start();
             //Installer.LogMessage += Console.WriteLine;
             //await Installer.SetupPython();
-            Python.Runtime.Runtime.PythonDLL = @"C:\Users\Mostafa\AppData\Local\python-3.7.3-embed-amd64\python37.dll";
+            Python.Runtime.Runtime.PythonDLL = @"python37.dll";
             //var z = Installer.EmbeddedPythonHome;
             //var x = await Installer.TryInstallPip();
             //await  Installer.PipInstallModule("tensorflow",force:true);
@@ -43,16 +43,28 @@ import tensorflow
 import transformers
 from transformers import AutoTokenizer, TFT5ForConditionalGeneration
 
+'''# Hyperparameters'''
+
 task_prefix = 'generate question using question word: '
+
 encoder_max_len = 250
 decoder_max_len = 70
-model=TFT5ForConditionalGeneration.from_pretrained(MODEL_PATH, local_files_only=True)
-model_name = 't5-small'
-tokenizer = AutoTokenizer.from_pretrained(Token_Path, local_files_only=True)
+
+model_name = 't5-base'
+
+'''# Loading Saved Model'''
+
+model=TFT5ForConditionalGeneration.from_pretrained(model_name)
+model.load_weights(MODEL_PATH)
+
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+'''# Encoding - Decoding Process'''
 
 inputs = tokenizer([task_prefix + question_word + ' ' + 'answer:' + ' '+ answer + ' ' + 'context: ' + passage for answer, question_word in zip(answers, question_words)], return_tensors='tf', padding=True, truncation=True, max_length=encoder_max_len)
 
 generated_questions = model.generate(inputs['input_ids'], attention_mask = inputs['attention_mask'], max_length = decoder_max_len, top_p = 0.95, top_k = 50, repetition_penalty = float(2))
+
 decoded_questions = tokenizer.batch_decode(generated_questions, skip_special_tokens = True)
 ");
                     questions = scope.Get<string[]>("decoded_questions");
