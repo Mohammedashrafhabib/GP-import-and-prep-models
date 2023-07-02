@@ -56,51 +56,69 @@ import spacy
 import re
 from word2number import w2n
 from collections import OrderedDict
+from nltk.stem import WordNetLemmatizer
+
 
 #spacy.cli.download('en_core_web_lg')
-nlp = spacy.load('en_core_web_lg')
-s2v = nlp.add_pipe('sense2vec')
+nlpDis = spacy.load('en_core_web_lg')
+s2v = nlpDis.add_pipe('sense2vec')
 s2v.from_disk(S2VPath)
+ps = WordNetLemmatizer()
 def common(s0, s1):
-  s0 = s0.lower()
-  s1 = s1.lower()
-  s0List = s0.split(' ')
-  s1List = s1.split(' ')
-  return len(list(set(s0List)&set(s1List)))
-def sense2vec_get_words(context):
-  doc=nlp(context)
+  s0 = remove_non_alphanumeric(s0.lower())
+  s1 = remove_non_alphanumeric(s1.lower())
+  s0Words = s0.split(' ')
+  s1Words = s1.split(' ')
+  return len(list(set(s0Words)&set(s1Words)))
+
+def remove_non_alphanumeric(word):
+    pattern = r'[^\w]'
+    return re.sub(pattern, ' ',ps.lemmatize(word))
+
+
+def sense2vec_get_words(context,s2vNo):
+  doc=nlpDis(context)
   output2 = []
+
   for ent in doc.ents:
     try:
-      output = []
+      output = set()
+      most_similar=ent._.s2v_most_similar(s2vNo)
+      for (word,label),score in most_similar:
 
-      # print(ent.text, ent.end_char, ent.label_)
-      most_similar=ent._.s2v_most_similar(100)
-      for each_word in most_similar:
-        if each_word[0][1]==ent.label_:
-          append_word = each_word[0][0]
+        if label == ent.label_:
+          append_word = word.lower()
 
-          new_append_word = re.sub(r'[^\w]', ' ', append_word.lower())
-          new_word = re.sub(r'[^\w]', ' ', ent.text.lower())
+          append_word = append_word.replace('/', ' ').replace('-', ' ')
+          new_append_word = remove_non_alphanumeric(append_word)
+          new_word = remove_non_alphanumeric(ent.text.lower())
+
           new_word2=''
           if ent.label_=='CARDINAL':
             new_word2=str(w2n.word_to_num(new_word))
-          if new_append_word not in new_word and new_word not in new_append_word and common(new_word,new_append_word)==0 and common(new_word2,new_append_word)==0 :
-              output.append(append_word.title())
-      #print( list(OrderedDict.fromkeys(output)))
+
+          new_word2 = remove_non_alphanumeric(new_word2.lower())
+
+          if new_append_word not in new_word and new_word not in new_append_word and common(new_word,new_append_word) == 0 and  common(new_word2,new_append_word) == 0:
+              output.add(append_word.title())
+            # else:
+            #   output.add(append_word.title())
+
       output2.append( [ent.text,list(OrderedDict.fromkeys(output))])
-      #print(output2)
-    except:
+    except Exception as e:
       continue
+
+#  print(output2)
   return output2
 ");
+                    scope.Set("s2vConst", 15);
                     scope.Set("context", passage);
                     scope.Exec(@"
-distractors = sense2vec_get_words(context)
-len=len(distractors)
+distractors = sense2vec_get_words(context,s2vConst)
+lenasd=len(distractors)
 ");
                     var distractors = scope.Get<PyList> ("distractors");
-                    var len = scope.Get<int>("len");
+                    var len = scope.Get<int>("lenasd");
 
                     List<KeyValuePair<string, string[]>> ret = new List<KeyValuePair<string, string[]>>();
                     for (int i = -1; i < len; i++)
